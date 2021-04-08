@@ -35,7 +35,17 @@ double dotd(vec3d v, vec3d u);
 
 vec3d scale(vec3d v, double s);
 
+vec3f scalef(vec3f v, float s);
+
+vec3d ele_mul_3d(vec3d v, vec3d u);
+
+vec3f ele_mul_3f(vec3f v, vec3f u);
+
 vec3d make_vec3d(const double x, const double y, const double z);
+
+vec3f make_vec3f(const float x, const float y, const float z);
+
+vec3d normalize3d(vec3d v);
 
 double dist(const vec3d u, const vec3d v);
 

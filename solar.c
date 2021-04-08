@@ -11,6 +11,8 @@
 #include "sphere.h"
 #include "ray.h"
 #include "view.h"
+#include "phong.h"
+#include "light.h"
 
 
 char* scale_to_char(float* arr, size_t size, float scale){
@@ -39,8 +41,8 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	int width = 400;
-	int height = 400;
+	int width = 800;
+	int height = 800;
 
 
 	vec3d cam_pos = make_vec3d(0,0,0);
@@ -132,6 +134,11 @@ int main(int argc, char* argv[]) {
 				make_sphere_col(0.5,0,1) ) 
 	};
 
+	light_t light;
+	//light.pos = make_vec3d(0,0,10);
+	light.pos = make_vec3d(0,0,1);
+	light.col = make_vec3f(1,1,1);
+
 	ray_t ray;
 
 	sphere_inter_t sphere_inter;
@@ -158,7 +165,7 @@ int main(int argc, char* argv[]) {
 			printf("box h: %i, box v: %i\n", i, j);
 			current_width = fmin(box_width, width - (i * box_width));
 			current_height = fmin(box_height, height- (j * box_height));
-			printf("current: box h: %i, box v: %i, index: %i\n", current_width, current_height, i + j * num_box_horiz);
+			//printf("current: box h: %i, box v: %i, index: %i\n", current_width, current_height, i + j * num_box_horiz);
 
 			boxes[i + j * num_box_horiz] = (float*) calloc(3 * current_width * current_height, sizeof(float));
 			//printf("3.1\n");
@@ -175,7 +182,10 @@ int main(int argc, char* argv[]) {
 					//printf("copy form #%i\n", i+j * num_box_vert);
 					if(sphere_inter.sphere != NULL)
 					{
-						memcpy(offset, (void *) &sphere_inter.sphere->col, sizeof(float) * 3);
+
+						getColAtInterSingleL(&sphere_inter, &light, &cam_pos, offset);
+
+						//memcpy(offset, (void *) &sphere_inter.sphere->col, sizeof(float) * 3);
 						//printf("inter in box %i %i\n", i, j);
 						//printf("#");
 					}
@@ -194,7 +204,6 @@ int main(int argc, char* argv[]) {
 
 	//gamma scaling
 	float max = 1;
-	/*
 	for(int i = 0; i < num_box_horiz; i++){
 		for(int j = 0; j < num_box_vert; j++){
 			//size_t points_in_box = 
@@ -205,12 +214,10 @@ int main(int argc, char* argv[]) {
 			for(size_t k = 0; k < current_width * current_height; k++){
 				max = fmax(max, sqrt(box_start[k]));
 			}
-
 		}
 	}
-	*/
 
-	printf("found max\n");
+	printf("found max as %f\n", max);
 
 	char** char_boxes = (char**) malloc(sizeof(char) * num_box_vert * num_box_horiz);
 

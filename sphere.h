@@ -2,17 +2,14 @@
 #define SPHERE_HEADER_H
 #include "vec.h"
 #include "ray.h"
+#include "light.h"
 
 typedef struct {
 	vec3d center;
 	double radius;
 } sphere_geom_t;
 
-typedef struct {
-	float r;
-	float g;
-	float b;
-} sphere_col_t;
+typedef vec3f sphere_col_t;
 
 typedef struct {
 	sphere_geom_t geom;
@@ -22,6 +19,7 @@ typedef struct {
 typedef struct {
 	sphere_t * sphere;
 	vec3d pos;
+	vec3d norm;
 } sphere_inter_t;
 
 typedef struct {

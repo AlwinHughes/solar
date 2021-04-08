@@ -63,7 +63,7 @@ void print_full_sphere(const sphere_t s){
 }
 
 void print_sphere_col(const sphere_col_t col){
-	printf("r: %i, g: %i, b: %i", col.r, col.g, col.b);
+	printf("r: %i, g: %i, b: %i", col.x, col.y, col.z);
 }
 
 sphere_geom_t make_sphere_geom(const vec3d center, const double radius){
@@ -112,6 +112,11 @@ float does_intersect2(const sphere_geom_t s, const ray_t r){
 	return (-b + sqrt(disc_sq))/ (2.0 * a);
 }
 
+void getNorm(sphere_inter_t* inter) {
+	inter->norm = sub_vec3d(inter->pos, inter->sphere->geom.center);
+	inter->norm = normalize3d(inter->norm);
+};
+
 
 void getNearestSphere(const ray_t r, sphere_t spheres[], size_t num_spheres, const vec3d cam_pos, sphere_inter_t * inter){
 
@@ -135,8 +140,13 @@ void getNearestSphere(const ray_t r, sphere_t spheres[], size_t num_spheres, con
 			inter->sphere = &spheres[i];
 		}
 	}
-	inter->pos = eval_at_point(r, best_t);
 
+	if(inter->sphere){
+	//	printf("got an inter with norm\n");
+		inter->pos = eval_at_point(r, best_t);
+		getNorm(inter);
+	//	print_vec3d(inter->norm);
+	}
 }
 
 sphere_t make_sphere(const sphere_geom_t geom, sphere_col_t col) {
@@ -148,8 +158,8 @@ sphere_t make_sphere(const sphere_geom_t geom, sphere_col_t col) {
 
 sphere_col_t make_sphere_col(float r, float g, float b) {
 	sphere_col_t col;
-	col.r = r;
-	col.g = g;
-	col.b = b;
+	col.x = r;
+	col.y = g;
+	col.z = b;
 	return col;
 }
