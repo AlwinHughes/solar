@@ -56,8 +56,8 @@ int view_single(char* box, unsigned int width, unsigned int height){
 	size_t index;
 	for(size_t y = 0; y < height; y++){
 		for(size_t x = 0; x < width; x++){
-			index = (x + height * y)*3 + 1;
-			XSetForeground(d, gc, black_pixel + (box[index] << 8) + 100);
+			index = (x + height * y)*3;
+			XSetForeground(d, gc, black_pixel + box[index] + 100);
 			XDrawPoint(d, pm, gc, x, y);
 		}
 	}
@@ -100,7 +100,7 @@ int view_single(char* box, unsigned int width, unsigned int height){
 
 
 
-int view_all(char** boxes, size_t box_width, size_t box_height, size_t width, size_t height, size_t num_boxes_h){
+int view_all(unsigned char** boxes, size_t box_width, size_t box_height, size_t width, size_t height, size_t num_boxes_h){
 
 	Display* d = XOpenDisplay(0);
 
@@ -108,8 +108,8 @@ int view_all(char** boxes, size_t box_width, size_t box_height, size_t width, si
 		return 1;
 	}
 
-	int black_pixel = BlackPixel(d, DefaultScreen(d));
-	int white_pixel = WhitePixel(d, DefaultScreen(d));
+	unsigned int black_pixel = BlackPixel(d, DefaultScreen(d));
+	unsigned int white_pixel = WhitePixel(d, DefaultScreen(d));
 	unsigned int window_width = width;
 	unsigned int window_height = height;
 	
@@ -149,14 +149,15 @@ int view_all(char** boxes, size_t box_width, size_t box_height, size_t width, si
 	GC gc = XCreateGC(d, w, 0,0);
   int depth = DefaultDepth(d, DefaultScreen(d));
 	printf("default depth: %i\n", depth);
+	printf("black_pixel %u, white pixel %u\n", black_pixel, white_pixel);
 
 	Pixmap pm = XCreatePixmap(d, w, width, height, depth);
 
 
 	int box_x, box_y;
-	char* box;
+	unsigned char* box;
 	int curr_box_width;
-	int index;
+	unsigned int index, t1, t2;
 	for(int y = 0; y < height; y++ ){
 		box_y = y / box_height;
 		for(int x = 0; x < width; x++){
@@ -172,8 +173,17 @@ int view_all(char** boxes, size_t box_width, size_t box_height, size_t width, si
 			index = (curr_box_width * (y % box_height) + (x % box_width)) * sizeof(char) ;
 
 			//box[index];
+			t1 = box[index * 3+2];
+			t2 = t1;
+			t1 = box[index * 3 +1];
+			t1 <<= 8;
+			t2 += t1;
+			t1 =  box[index * 3];
+			t1 <<= 16;
+			t2 += t1;
 
-			XSetForeground(d, gc, black_pixel + (box[index * 3] << 0));
+			
+			XSetForeground(d, gc, black_pixel +t2);
 			XDrawPoint(d, pm, gc, x, y);
 
 			//printf("---\n");

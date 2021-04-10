@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <png.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -13,14 +12,15 @@
 #include "view.h"
 #include "phong.h"
 #include "light.h"
+#include "pngsetup.h"
 
 
-char* scale_to_char(float* arr, size_t size, float scale){
+unsigned char* scale_to_char(float* arr, size_t size, float scale){
 
-	char* ret = (char*) malloc(sizeof(char) * size);
+	unsigned char* ret = (char*) malloc(sizeof(char) * size);
 
 	for(size_t i = 0; i < size; i++){
-		ret[i] = (char) (arr[i] * scale * 255);
+		ret[i] = (unsigned char) (arr[i] * scale * 255);
 	}
 
 	return ret;
@@ -41,15 +41,14 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	int width = 800;
-	int height = 800;
+	printf("png byte size: %zu\n", sizeof(png_byte));
+
+	int width = 1000;
+	int height = 1000;
 
 
 	vec3d cam_pos = make_vec3d(0,0,0);
 
-
-	char* line = (char* ) malloc(10);
-	size_t line_length;
 	FILE * count_fp, * fp;
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -58,85 +57,28 @@ int main(int argc, char* argv[]) {
 	char file_name[21];
 
 	if(write == 1) {
-
-		printf("i'm going to do a png\n");
-
-		count_fp = fopen("count", "r+");
-
-		if(!count_fp){
-			printf("Couldn't open count file\n");
-			return 1;
-		}
-
-		printf("1\n");
-
-		getline(&line, &line_length,count_fp);
-
-		printf("2\n");
-
-		image_number = atoi(line);
-		image_number++;
-		//char image_num_str[20];
-		sprintf(file_name,"images/image_%i.png", image_number);
-
-		if(access(file_name, F_OK) == 0) {
-			fprintf(stderr, "image file already exists\n");
-			return 1;
-		}
-
-
-		fp = fopen(file_name, "wb");
-		if(!fp){
-			fprintf(stderr, "couldn't write to file");
-			return 1;
-		}
-
-		png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-		if(!png_ptr){
-			fprintf(stderr, "couldn't allocated write structure 1\n");
-		}
-
-		info_ptr = png_create_info_struct(png_ptr);
-		if(!info_ptr){
-			fprintf(stderr, "couldn't allocated write structure 2\n");
-		}
-
-		png_init_io(png_ptr, fp);
-
-		png_set_IHDR(png_ptr, info_ptr, width, height,
-				8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-				PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-		png_write_info(png_ptr, info_ptr);
-
-		png_row = (png_bytep) malloc(3 * width * sizeof(png_byte));
+		pngSetUp(&count_fp, &fp, &png_ptr, &info_ptr, &png_row, &image_number, file_name, width, height);
 	}
 
-	int res;
 	float ratio = (float) width / height;
-
-
-
-	inter_first_t inter_1;
-	inter_second_t inter_2;
-
-	float t;
 
 	sphere_geom_t sphere = make_sphere_geom(make_vec3d(3,0,0), 1);
 
-	size_t num_sphere = 2;
+	size_t num_sphere = 1;
 	sphere_t spheres[] = { 
-		make_sphere(make_sphere_geom(make_vec3d(3,0.4,0), 1),
-				make_sphere_col(1,1,0) ), 
+		/*make_sphere(make_sphere_geom(make_vec3d(3,0.4,0), 0.5),
+				make_sphere_col(1,1,0) ), */
 		//make_sphere(make_sphere_geom(make_vec3d(4,1,0), 2),make_sphere_col(1,0,0) ),
-		make_sphere(make_sphere_geom(make_vec3d(4,0,0.3), 2),
-				make_sphere_col(0.5,0,1) ) 
+			/*make_sphere(make_sphere_geom(make_vec3d(7,0,0.3), 2),
+				make_sphere_col(0.5,0,1) ),*/
+
+			make_sphere(make_sphere_geom(make_vec3d(2,0,0), 0.2),
+				make_sphere_col(1,0,0) )
 	};
 
 	light_t light;
 	//light.pos = make_vec3d(0,0,10);
-	light.pos = make_vec3d(0,0,1);
+	light.pos = make_vec3d(-5,0,0);
 	light.col = make_vec3f(1,1,1);
 
 	ray_t ray;
@@ -145,11 +87,11 @@ int main(int argc, char* argv[]) {
 	
 	printf("\n");
 
-	const size_t box_width = 150;
-	const size_t box_height = 149; 
+	const int box_width = 1000;
+	const int box_height = 1000; 
 
-	const size_t num_box_horiz = ceil((float) width / box_width);
-	const size_t num_box_vert = ceil((float) height / box_height);
+	const int num_box_horiz = ceil((float) width / box_width);
+	const int num_box_vert = ceil((float) height / box_height);
 
 	float** boxes = (float**) malloc(sizeof(float* ) * num_box_horiz * num_box_vert);
 	printf("horiz: %i, vert: %i array length: %i \n", num_box_horiz, num_box_vert, num_box_horiz * num_box_vert);
@@ -157,6 +99,10 @@ int main(int argc, char* argv[]) {
 
 	float * box_start;
 	int current_width, current_height;
+	vec3f ambient = make_vec3f(0.0,0.0,0.0);
+	float diffuse, shinyness;
+	diffuse = 1;
+	shinyness = 20;
 
 	//compute intersections by grouping in boxes
 	for(int j = 0; j < num_box_vert; j++){
@@ -176,50 +122,43 @@ int main(int argc, char* argv[]) {
 					//printf("x: %i, y:%i\n", x,y);
 
 					ray = make_ray( cam_pos, make_vec3d(1, ratio * (x / (float) width) - 0.5,   (y / (float) height) - 0.5 ));
-					//printf("3.2\n");
 					getNearestSphere(ray, spheres, num_sphere, cam_pos, &sphere_inter);
-					//printf("3.3\n");
-					//printf("copy form #%i\n", i+j * num_box_vert);
 					if(sphere_inter.sphere != NULL)
 					{
 
 						getColAtInterSingleL(&sphere_inter, &light, &cam_pos, offset);
+						//getColAtInterSingleLAmb(&sphere_inter, &light, &ambient, &cam_pos, shinyness, diffuse, offset);
 
-						//memcpy(offset, (void *) &sphere_inter.sphere->col, sizeof(float) * 3);
-						//printf("inter in box %i %i\n", i, j);
-						//printf("#");
 					}
-					//memcpy(boxes[ i + j * num_box_horiz]+(i * current_width + j), (void *) &sphere_inter.sphere->col, sizeof(float) * 3);
-					//printf("3.4\n");
 					offset += 3;
 				}
-				//printf("\n");
 
 			}
-			//printf("3.9----\n");
 		}
 	}
 
 	printf("inters all computed\n");
+	current_width = 0;
+	current_height = 0;
 
 	//gamma scaling
 	float max = 1;
-	for(int i = 0; i < num_box_horiz; i++){
-		for(int j = 0; j < num_box_vert; j++){
+	for(int j = 0; j < num_box_vert; j++){
+		for(int i = 0; i < num_box_horiz; i++){
 			//size_t points_in_box = 
-			size_t current_width = fmin(box_width, width - (i * num_box_horiz));
-			size_t current_height = fmin(box_height, height- (i * num_box_vert));
+			current_width = fmin(box_width, width - (i * box_width));
+			current_height = fmin(box_height, height- (j * box_height));
 			
 			float* box_start = boxes[i + j * num_box_horiz];
 			for(size_t k = 0; k < current_width * current_height; k++){
-				max = fmax(max, sqrt(box_start[k]));
+				max = fmax(max, box_start[k]);
 			}
 		}
 	}
 
 	printf("found max as %f\n", max);
 
-	char** char_boxes = (char**) malloc(sizeof(char) * num_box_vert * num_box_horiz);
+	unsigned char** char_boxes = (unsigned char**) malloc(sizeof(char) * num_box_vert * num_box_horiz);
 
 	current_width = 0;
 	current_height = 0;
@@ -234,6 +173,7 @@ int main(int argc, char* argv[]) {
 
 		}
 	}
+	printf("scaled all boxes\n");
 
 
 	//preview boxes
@@ -242,15 +182,11 @@ int main(int argc, char* argv[]) {
 		for(int i = 0; i < num_box_horiz; i++){
 			printf("box h: %i, box v: %i\n", i, j);
 			current_width = fmin(box_width, width - (i * box_width));
-			current_height = fmin(box_height, height- (j * box_height));
-			//view_single(char_boxes[i + num_box_horiz * j], current_width, current_height);
+
 		}
 	}
 
 	view_all(char_boxes, box_width, box_height, width, height, num_box_horiz);
-
-
-	printf("scaled all boxes\n");
 
 	/*
 	for(int y = 0; y< height; y++){
@@ -282,44 +218,74 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	for(size_t row = 0; row < height;row++){
-		size_t box_row = floor((float) row / box_height);
-		size_t count = 0;
-		size_t row_offset = 0;
+	/*
+	for(int row = 0; row < height; row++){
+		int box_row = row / box_height;
+		int count = 0;
+		int row_offset = 0;
+		int curr_box_width;
 
-		for(size_t box_col  = 0; box_col < num_box_horiz; box_col++) {
+		for(int box_col = 0; box_col < num_box_horiz; box_col++) {
+			
+			curr_box_width = fmin(box_width, width - box_col * box_width);
+
+			printf("row %i, box_row %i, box_col %i box_array %i \n", row, box_row, box_col, box_row * num_box_horiz+ box_col);
+
+			if((curr_box_width * (box_row % box_height) * sizeof(png_byte) * 3 ) < 0){
+				printf("warning size negative\n");
+			}
+			printf("starting row at %i starting box at %zu \n", row_offset, (curr_box_width * (box_row % box_height) * sizeof(png_byte) * 3 ));
 
 
-			//memcpy(row + (box_width * sizeof(float) * 3), boxes[row * num_box_vert + i], 3 * sizeof(float) );
-
-			size_t curr_box_width = fmin(box_width, width - box_col * box_width);
-			//row_offset = box_col * box_width * 3;
-
-			/** if(curr_box_width == box_width) { */
-			/**   block_offset =  */
-			//printf("row: %u col: %u index: %u\n", box_row, box_col, box_row * num_box_horiz+ box_col);
-			//printf("block_offset: %i , row_offset: %i, copying: %i\n", block_offset, row_offset, curr_box_width);
-			//printf("width - block_offset: %i\n", width - block_offset);
-			/**  */
-			/**   memcpy(png_row + (row_offset* sizeof(png_byte) * 3), boxes[box_row * num_box_horiz+ box_col ] + sizeof(png_byte) * 3 * block_offset, curr_box_width * sizeof(png_byte) * 3); */
-			/**   printf("---\n"); */
-			/**  */
-			/** } else { */
-			memcpy(
-					png_row + (row_offset * sizeof(png_byte) * 3),
+			/*memcpy(
+					png_row + row_offset,
 					char_boxes[box_row * num_box_horiz+ box_col ] + (curr_box_width * (box_row % box_height) * sizeof(png_byte) * 3 ),
 					curr_box_width * sizeof(png_byte) * 3
 					);
-			count += curr_box_width * sizeof(png_byte);
+					/
+
+			
+			for(size_t i = 0; i < curr_box_width; i++){
+				png_row[i] = char_boxes[box_row * num_box_horiz+ box_col][(curr_box_width * (box_row % box_height) * sizeof(png_byte) * 3 ) + i];
+			}
+			
+
+			count += curr_box_width * sizeof(png_byte) * 3 ;
 			row_offset += curr_box_width;
-			printf("copied %i pixels", curr_box_width * sizeof(png_byte));
+			printf("copied %zu pixels", curr_box_width * sizeof(png_byte) * 3);
 			printf("---\n");
 		}
-		printf("row %i had %u elements\n", row, count);
+		printf("row %i had %u bytes\n", row, count);
+		png_write_row(png_ptr, png_row);
+	}
+	*/
+
+	int box_x, box_y;
+	unsigned char* box;
+	int curr_box_width;
+	unsigned int index, t1, t2;
+
+	for(int y = 0; y < height; y++ ){
+		box_y = y / box_height;
+		for(int x = 0; x < width; x++){
+
+			box_x = x / box_width;
+			curr_box_width = fmin(box_width, width - box_x * box_width);
+			box = char_boxes[box_x + num_box_horiz * box_y];
+			index = (curr_box_width * (y % box_height) + (x % box_width)) * sizeof(char) ;
+			
+			png_row[x* 3 ] = box[index * 3];
+			png_row[x* 3 + 1] = box[index * 3 + 1];
+			png_row[x* 3 + 2] = box[index * 3 + 2];
+
+		}
+
 		png_write_row(png_ptr, png_row);
 	}
 
-		printf("copied all to libpng");
+
+
+		printf("copied all to libpng\n");
 
 	png_write_end(png_ptr, NULL);
 
