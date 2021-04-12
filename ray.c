@@ -18,6 +18,6 @@ void print_ray(const ray_t r) {
 
 inline vec3d eval_at_point(const ray_t ray, double t){
 	vec3d temp = ray.direc;
-	scale(temp, t);
+	temp = scale(temp, t);
 	return add_vec3d(temp, ray.start);
 }

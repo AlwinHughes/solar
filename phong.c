@@ -8,9 +8,15 @@ void getColAtInterSingleL(sphere_inter_t* inter, light_t* light, vec3d* cam, voi
 	vec3d inter_to_light = normalize3d(sub_vec3d(light->pos, inter->pos));
 	float f = dotd(inter->norm, inter_to_light);
 	if(f <= 0){
+		printf("wrong side\n");
 		memcpy(out, &ret, sizeof(float) *3);
 		return;
 	}
+
+	
+	//printf("norm: %f\n",sized(inter->norm));
+
+	//printf("f %f\n", f);
 
 	//ret = scalef(ele_mul_3f(inter->sphere->col,light->col), f);
 	ret = add_vec3f(ret, scalef(inter->sphere->col, f));
@@ -27,20 +33,20 @@ void getColAtInterSingleLAmb(sphere_inter_t* inter, light_t* light, vec3f* ambie
 	vec3d inter_to_light = normalize3d(sub_vec3d(light->pos, inter->pos));
 	float f = fmax(dotd(inter->norm, inter_to_light),0);
 
-	ret = add_vec3f(scalef(inter->sphere->col, f), ret);
+	//ret = add_vec3f(scalef(inter->sphere->col, f), ret);
 	
 	//diffuse reflection
-	//ret = scalef(inter->sphere->col, pow(f,diff));
+	ret = scalef(inter->sphere->col, pow(f,diff));
 	//memcpy(out, &ret, sizeof(float) *3);
 
 	//spectral reflection
 	vec3f spec; 
-	vec3d inter_to_cam = sub_vec3d(inter->pos, *cam);
+	vec3d inter_to_cam = normalize3d(sub_vec3d(*cam, inter->pos));
 	vec3d between = normalize3d(add_vec3d(inter_to_cam, inter_to_light));
 
-	float s = fmax(dotd(inter->norm, between),0) * 0;
+	float s = fmax(dotd(inter->norm, between),0);
 
-	spec = scalef(light->col, 0.1 * pow(s, shininess));
+	spec = scalef(light->col, pow(s, shininess));
 	
 	ret = add_vec3f(ret, spec);
 

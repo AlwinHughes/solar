@@ -202,10 +202,11 @@ int view_all(unsigned char** boxes, size_t box_width, size_t box_height, size_t 
 			XConfigureEvent xce = e.xconfigure;
 
 			if(xce.width != width || xce.height != height) {
-				XClearWindow(d, w);
+				//XClearWindow(d, w);
 				window_width = xce.width;
 				window_height = xce.height;
-				XCopyArea(d, pm, w, gc, 0,0, width, height, 0,0);
+				printf("new: width, height: %i %i", window_width, window_height);
+				XCopyArea(d, pm, w, gc, 0,0, fmin(width, window_width), fmin(window_height, height), 0,0);
 
 			}
 		}

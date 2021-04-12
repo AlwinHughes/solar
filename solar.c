@@ -14,6 +14,9 @@
 #include "light.h"
 #include "pngsetup.h"
 
+#define ARRLEN(a) (sizeof(a) / sizeof((a)[0]))
+
+
 
 unsigned char* scale_to_char(float* arr, size_t size, float scale){
 
@@ -64,21 +67,46 @@ int main(int argc, char* argv[]) {
 
 	sphere_geom_t sphere = make_sphere_geom(make_vec3d(3,0,0), 1);
 
-	size_t num_sphere = 1;
 	sphere_t spheres[] = { 
-		/*make_sphere(make_sphere_geom(make_vec3d(3,0.4,0), 0.5),
-				make_sphere_col(1,1,0) ), */
-		//make_sphere(make_sphere_geom(make_vec3d(4,1,0), 2),make_sphere_col(1,0,0) ),
-			/*make_sphere(make_sphere_geom(make_vec3d(7,0,0.3), 2),
-				make_sphere_col(0.5,0,1) ),*/
+		make_sphere(make_sphere_geom(make_vec3d(3,0.4,0), 0.5),
+				make_sphere_col(0,1,0) ), 
+			make_sphere(make_sphere_geom(make_vec3d(10,0,100), 100),make_sphere_col(1,1,1) ),
+			make_sphere(make_sphere_geom(make_vec3d(20,0,0.3), 5),
+				make_sphere_col(0,0,1) ),
 
 			make_sphere(make_sphere_geom(make_vec3d(2,0,0), 0.2),
 				make_sphere_col(1,0,0) )
 	};
 
+	ray_t test_ray = make_ray(make_vec3d(0,0,0), make_vec3d(10,0,0));
+	sphere_inter_t si;
+
+	getNearestSphere(test_ray, spheres, ARRLEN(spheres), cam_pos, &si);
+
+	/*
+	if(!si.sphere){
+		printf("no inter\n");
+		return 0 ;
+	}
+
+	printf("sphere: ");
+	print_sphere(si.sphere->geom);
+	printf("\n");
+
+	printf("had color:");
+	print_vec3f(si.sphere->col);
+	printf("\n has pos ");
+	print_vec3d(si.pos);
+	printf("\nhad norm\n ");
+	print_vec3d(si.norm);
+	printf("\n");
+
+	return 0;
+	*/
+
 	light_t light;
 	//light.pos = make_vec3d(0,0,10);
-	light.pos = make_vec3d(-5,0,0);
+	light.pos = make_vec3d(0,10,-5);
 	light.col = make_vec3f(1,1,1);
 
 	ray_t ray;
@@ -99,7 +127,7 @@ int main(int argc, char* argv[]) {
 
 	float * box_start;
 	int current_width, current_height;
-	vec3f ambient = make_vec3f(0.0,0.0,0.0);
+	vec3f ambient = make_vec3f(0.1,0.1,0.1);
 	float diffuse, shinyness;
 	diffuse = 1;
 	shinyness = 20;
@@ -122,12 +150,12 @@ int main(int argc, char* argv[]) {
 					//printf("x: %i, y:%i\n", x,y);
 
 					ray = make_ray( cam_pos, make_vec3d(1, ratio * (x / (float) width) - 0.5,   (y / (float) height) - 0.5 ));
-					getNearestSphere(ray, spheres, num_sphere, cam_pos, &sphere_inter);
+					getNearestSphere(ray, spheres, ARRLEN(spheres), cam_pos, &sphere_inter);
 					if(sphere_inter.sphere != NULL)
 					{
 
-						getColAtInterSingleL(&sphere_inter, &light, &cam_pos, offset);
-						//getColAtInterSingleLAmb(&sphere_inter, &light, &ambient, &cam_pos, shinyness, diffuse, offset);
+						//getColAtInterSingleL(&sphere_inter, &light, &cam_pos, offset);
+						getColAtInterSingleLAmb(&sphere_inter, &light, &ambient, &cam_pos, shinyness, diffuse, offset);
 
 					}
 					offset += 3;
@@ -142,7 +170,7 @@ int main(int argc, char* argv[]) {
 	current_height = 0;
 
 	//gamma scaling
-	float max = 1;
+	float max = -1;
 	for(int j = 0; j < num_box_vert; j++){
 		for(int i = 0; i < num_box_horiz; i++){
 			//size_t points_in_box = 
@@ -150,7 +178,7 @@ int main(int argc, char* argv[]) {
 			current_height = fmin(box_height, height- (j * box_height));
 			
 			float* box_start = boxes[i + j * num_box_horiz];
-			for(size_t k = 0; k < current_width * current_height; k++){
+			for(size_t k = 0; k < current_width * current_height * 3; k++){
 				max = fmax(max, box_start[k]);
 			}
 		}
@@ -158,7 +186,7 @@ int main(int argc, char* argv[]) {
 
 	printf("found max as %f\n", max);
 
-	unsigned char** char_boxes = (unsigned char**) malloc(sizeof(char) * num_box_vert * num_box_horiz);
+	unsigned char** char_boxes = (unsigned char**) malloc(sizeof(unsigned char) * num_box_vert * num_box_horiz);
 
 	current_width = 0;
 	current_height = 0;
@@ -178,41 +206,16 @@ int main(int argc, char* argv[]) {
 
 	//preview boxes
 	
-	for(int j = 0; j < num_box_vert; j++){
+/*	for(int j = 0; j < num_box_vert; j++){
 		for(int i = 0; i < num_box_horiz; i++){
 			printf("box h: %i, box v: %i\n", i, j);
 			current_width = fmin(box_width, width - (i * box_width));
 
 		}
 	}
+	*/
 
 	view_all(char_boxes, box_width, box_height, width, height, num_box_horiz);
-
-	/*
-	for(int y = 0; y< height; y++){
-		for(int x = 0; x < width; x++){
-			ray = make_ray( cam_pos, make_vec3d(1, ratio * (x / (float) width) - 0.5,   (y / (float) height) - 0.5 ));
-			
-			getNearestSphere(ray, spheres, num_sphere, cam_pos, &sphere_inter);
-			//first_half_compute_inter(sphere, ray, &inter_1);
-
-			//t = does_intersect2(sphere, ray);
-
-			if(sphere_inter.sphere != NULL) {
-				row[x*3] = sphere_inter.sphere->col.r;
-				row[x*3 + 1] = sphere_inter.sphere->col.g;
-				row[x*3 + 2] = sphere_inter.sphere->col.b;
-			} else {
-				row[x*3] = 0;
-				row[x*3 + 1] = 0;
-				row[x*3 + 2] = 0;
-			}
-		}
-		if(y % 25 == 0)
-			printf("row %i\n", y);
-		png_write_row(png_ptr, row);
-	}
-	*/
 
 	if(write == 0){
 		return 0;

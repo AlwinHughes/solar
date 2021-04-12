@@ -100,7 +100,7 @@ void second_half_compute_inter(const ray_t r, inter_first_t * inter, inter_secon
 float does_intersect2(const sphere_geom_t s, const ray_t r){
 
 	double a = dotd(r.direc, r.direc);
-	vec3d start_min_center =  sub_vec3d(r.start, s.center);
+	vec3d start_min_center = sub_vec3d(r.start, s.center);
 	double b = 2.0 * dotd(start_min_center, r.direc);
 	double c = dotd(start_min_center, start_min_center) - (s.radius * s.radius);
 
@@ -109,11 +109,16 @@ float does_intersect2(const sphere_geom_t s, const ray_t r){
 		return -1.0;
 	} 
 
-	return (-b + sqrt(disc_sq))/ (2.0 * a);
+	// know a > 0
+	if( b > 0 ) {
+		return (-b + sqrt(disc_sq))/ (2.0 * a);
+	}
+
+	return (-b - sqrt(disc_sq))/ (2.0 * a);
 }
 
 void getNorm(sphere_inter_t* inter) {
-	inter->norm = sub_vec3d(inter->pos, inter->sphere->geom.center);
+	inter->norm = sub_vec3d(inter->pos,inter->sphere->geom.center);
 	inter->norm = normalize3d(inter->norm);
 };
 
@@ -127,18 +132,32 @@ void getNearestSphere(const ray_t r, sphere_t spheres[], size_t num_spheres, con
 	inter->sphere = NULL;
 
 	for(size_t i = 0; i < num_spheres; i++){
+		//printf("considering sphere ");
+		//print_sphere(spheres[i].geom);
+		//printf(" with col ");
+		//print_vec3f(spheres[i].col);
+		//printf("\n");
 		t = does_intersect2(spheres[i].geom, r);
 		if(t < 0){
+			//printf("non positive\n");
 			continue;
 		} 
 
+		//printf("inter at: ");
+		//print_vec3d(eval_at_point(r, t));
+		//printf("\n");
+
+		//printf("got t of %f\n", t);
 		curr_dist = dist(cam_pos,eval_at_point(r, t));
+		//printf("found dist %f\n", curr_dist);
 
 		if(curr_dist < best_dist){
+			//printf("found new best\n");
 			best_dist = curr_dist;
 			best_t = t;
 			inter->sphere = &spheres[i];
 		}
+		//printf("---\n");
 	}
 
 	if(inter->sphere){
