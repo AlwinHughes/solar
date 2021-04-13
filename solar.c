@@ -13,6 +13,7 @@
 #include "phong.h"
 #include "light.h"
 #include "pngsetup.h"
+#include "renderable.h"
 
 #define ARRLEN(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -20,12 +21,11 @@
 
 unsigned char* scale_to_char(float* arr, size_t size, float scale){
 
-	unsigned char* ret = (char*) malloc(sizeof(char) * size);
+	unsigned char* ret = (unsigned char*) malloc(sizeof(unsigned char) * size);
 
 	for(size_t i = 0; i < size; i++){
 		ret[i] = (unsigned char) (arr[i] * scale * 255);
 	}
-
 	return ret;
 }
 
@@ -109,6 +109,16 @@ int main(int argc, char* argv[]) {
 	light.pos = make_vec3d(0,10,-5);
 	light.col = make_vec3f(1,1,1);
 
+	renderable_t renderables[4];
+	//												pos									radius		color						ambient								 shin, diff
+	make_sphere2(renderables, make_vec3d(3,0.4,0), 0.5, make_vec3f(0,1,0), make_vec3f(0.1,0.1,0.1), 100, 1);
+	make_sphere2(renderables +1, make_vec3d(10,0,100), 100, make_vec3f(1,1,1), make_vec3f(0.1,0.1,0.1), 10, 1);
+	make_sphere2(renderables +2, make_vec3d(20,0,0.3), 5, make_vec3f(0,0,1), make_vec3f(0.1,0.1,0.1), 10, 1);
+	make_sphere2(renderables +3, make_vec3d(2,0,0), 0.2, make_vec3f(1,0,0), make_vec3f(0.1,0.1,0.1), 10, 1);
+
+	sceene_t sceene;
+	make_sceene(ARRLEN(renderables),1, &light, renderables, &sceene);
+
 	ray_t ray;
 
 	sphere_inter_t sphere_inter;
@@ -131,6 +141,7 @@ int main(int argc, char* argv[]) {
 	float diffuse, shinyness;
 	diffuse = 1;
 	shinyness = 20;
+	intersection_t inter;
 
 	//compute intersections by grouping in boxes
 	for(int j = 0; j < num_box_vert; j++){
@@ -150,6 +161,14 @@ int main(int argc, char* argv[]) {
 					//printf("x: %i, y:%i\n", x,y);
 
 					ray = make_ray( cam_pos, make_vec3d(1, ratio * (x / (float) width) - 0.5,   (y / (float) height) - 0.5 ));
+
+					getClosestInter(&ray, cam_pos, &sceene, &inter);
+					if(inter.empty != INTER_EMPTY){
+						//printf("found inter\n");
+						*((vec3f*) offset) = inter.obj->getColAtInter(inter.obj, &ray, &inter, &sceene, &cam_pos);
+					} 
+					inter.empty = INTER_EMPTY;
+					/*
 					getNearestSphere(ray, spheres, ARRLEN(spheres), cam_pos, &sphere_inter);
 					if(sphere_inter.sphere != NULL)
 					{
@@ -158,6 +177,7 @@ int main(int argc, char* argv[]) {
 						getColAtInterSingleLAmb(&sphere_inter, &light, &ambient, &cam_pos, shinyness, diffuse, offset);
 
 					}
+					*/
 					offset += 3;
 				}
 

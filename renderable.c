@@ -32,6 +32,7 @@ void sphere_getClosestInter(const struct renderable* self, const ray_t* r, inter
 		return;
 	}
 	
+	out->empty = INTER_NONEMPTY;
 	out->pos = eval_at_point(*r, t);
 	out->norm = normalize3d(sub_vec3d(out->pos, *center));
 	out->obj = self;
@@ -70,7 +71,45 @@ vec3f shader_phong(const renderable_t* self, const ray_t* ray, const intersectio
 	return ret;
 };
 
-void make_sphere2(renderable_t* rend, vec3d v, double r, vec3f ambient, float shininess, float diff){
+vec3f shader_phong_shadow(const renderable_t* self, const ray_t* ray, const intersection_t* inter, const sceene_t* sceene, const vec3d* cam) {	
+
+	vec3f* ambient = (vec3f*)(self->shader_parameters);
+	float *shininess, *diff;
+	shininess = (float*)(self->shader_parameters + (sizeof(vec3f)));
+	diff = (float*)(self->shader_parameters + (sizeof(vec3f)) + sizeof(float));
+
+	vec3f ret = *ambient;
+
+	if(canSeePoint(sceene, inter, &sceene->lights->pos) == 1){
+
+		vec3d inter_to_light = normalize3d(sub_vec3d(sceene->lights[0].pos, inter->pos));
+		float f = fmax(dotd(inter->norm, inter_to_light),0);
+
+		//ret = add_vec3f(scalef(inter->sphere->col, f), ret);
+
+		//diffuse reflection
+		ret = scalef(inter->obj->col, pow(f,*diff));
+		//memcpy(out, &ret, sizeof(float) *3);
+
+		//spectral reflection
+		vec3f spec; 
+		vec3d inter_to_cam = normalize3d(sub_vec3d(*cam, inter->pos));
+		vec3d between = normalize3d(add_vec3d(inter_to_cam, inter_to_light));
+
+		float s = fmax(dotd(inter->norm, between),0);
+
+		spec = scalef(sceene->lights[0].col, pow(s, *shininess));
+
+		ret = add_vec3f(ret, spec);
+	}
+
+	return ret;
+};
+
+
+
+
+void make_sphere2(renderable_t* rend, vec3d v, double r, vec3f col, vec3f ambient, float shininess, float diff){
 
 	rend->geom_len = sizeof(vec3d) + sizeof(double);
 	rend->shade_len = sizeof(vec3f) + sizeof(float);
@@ -92,11 +131,11 @@ void make_sphere2(renderable_t* rend, vec3d v, double r, vec3f ambient, float sh
 	float* di = (float*) (base + rend->geom_len + sizeof(vec3f) + sizeof(float));
 	*di = diff;
 
-	
+	rend->col = col;
 	rend->geom_parameters =  base;
 	rend->shader_parameters = (void*) amb;
 	rend->getClosestInter = &sphere_getClosestInter;
-	rend->getColAtInter = &shader_phong;
+	rend->getColAtInter = &shader_phong_shadow;
 };
 
 void plane_getClosestInter(const struct renderable* self, const ray_t* ray, intersection_t* out) {
@@ -174,14 +213,14 @@ void getClosestInter(const ray_t* ray, const vec3d cam_pos, const sceene_t* scee
 	intersection_t next_inter;
 	float next_dist, best_dist;
 
-	best_dist = -1;
+	best_dist = 100000000;
 	for(int i = 0; i < sceene->no_objs; i++){
 		sceene->objects[i].getClosestInter(sceene->objects + i, ray, &next_inter);
 
 		if(next_inter.empty == INTER_EMPTY){
 			continue;
 		}
-	next_dist = dist(next_inter.pos, cam_pos);
+		next_dist = dist(next_inter.pos, cam_pos);
 
 		if(next_dist < best_dist){
 			best_dist = next_dist;
@@ -189,4 +228,23 @@ void getClosestInter(const ray_t* ray, const vec3d cam_pos, const sceene_t* scee
 		}
 	}
 };
+
+int canSeePoint(const sceene_t* s, const intersection_t* inter, const vec3d* target){
+	double dist_to_point = dist(*target, inter->pos);
+	ray_t ray;
+	ray.start = *target;
+	ray.direc = sub_vec3d(inter->pos,*target);
+	intersection_t new_inter;
+	for(int i = 0; i < s->no_objs; i++){
+		if(s->objects + i == inter->obj){
+			continue;
+		}
+		new_inter.empty = INTER_EMPTY;
+		s->objects[i].getClosestInter(s->objects+i, &ray, &new_inter);
+		if(new_inter.empty != INTER_EMPTY && dist(new_inter.pos, *target) < dist_to_point ) {
+			return 0;
+		}
+	}
+	return 1;
+}
 
