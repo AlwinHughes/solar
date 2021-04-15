@@ -4,7 +4,7 @@ SRCS = solar.c vec.c ray.c sphere.c view.c phong.c light.c pngsetup.c renderable
 OBJS =  $(SRCS:.c=.o)  
 DEP = vec.h sphere.h ray.h view.h phong.h light.h pngsetup.h renderable.h
 
-OPTS = -lpng -lX11 -lm -O2
+OPTS = -lpng -lX11 -lm  -O2
 
 
 solar : $(OBJS) $(DEP)

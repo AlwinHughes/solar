@@ -36,11 +36,16 @@ int main(int argc, char* argv[]) {
 	//ray_t ray = make_ray(make_vec3d(0,0,0), make_vec3d(1,0,0));
 
 	int write = 0;
+	int view = 1;
 
 	for(int i = 0; i < argc; i++){
 		if(strcmp(argv[i], "-w") == 0){
 			printf("accepting write\n");
 			write = 1;
+		}
+		if(strcmp(argv[i], "-h") == 0){
+			printf("hiding\n");
+			view = 0;
 		}
 	}
 
@@ -110,7 +115,7 @@ int main(int argc, char* argv[]) {
 	lights[0].col = make_vec3f(1,1,1);
 
 	lights[1].pos = make_vec3d(5,-7,-10);
-	lights[1].col = make_vec3f(0,1,1);
+	lights[1].col = make_vec3f(0,0,1);
 
 	renderable_t renderables[4];
 	//												pos									radius		color						ambient								 shin, diff
@@ -248,7 +253,8 @@ int main(int argc, char* argv[]) {
 	}
 	*/
 
-	view_all(char_boxes, box_width, box_height, width, height, num_box_horiz);
+	if(view)
+		view_all(char_boxes, box_width, box_height, width, height, num_box_horiz);
 
 	if(write == 0){
 		return 0;

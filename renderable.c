@@ -142,23 +142,17 @@ vec3f shader_phong_shadow(const renderable_t* self, const ray_t* ray, const inte
 	for(int i = 0; i < sceene->no_lights; i++){
 
 		if(canSeePoint(sceene, inter, &(sceene->lights[i].pos)) == 1){
-			//printf("light %i\n",i);
 
 			inter_to_light = normalize3d(sub_vec3d(sceene->lights[i].pos, inter->pos));
 			f = fmax(dotd(inter->norm, inter_to_light),0);
 
-			//ret = add_vec3f(scalef(inter->sphere->col, f), ret);
-
 			//diffuse reflection
 			ret = add_vec3f(ret, scalef(inter->obj->col, pow(f,*diff)));
-			//memcpy(out, &ret, sizeof(float) *3);
 
 			//spectral reflection
 			inter_to_cam = normalize3d(sub_vec3d(*cam, inter->pos));
 			between = normalize3d(add_vec3d(inter_to_cam, inter_to_light));
-
 			s = fmax(dotd(inter->norm, between),0);
-
 			spec = scalef(sceene->lights[i].col, pow(s, *shininess));
 
 			ret = add_vec3f(ret, spec);
