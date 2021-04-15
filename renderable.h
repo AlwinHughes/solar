@@ -9,8 +9,8 @@
 #include "sceene.h"
 
 typedef enum {
-	INTER_EMPTY, 
-	INTER_NONEMPTY
+	INTER_EMPTY = 0, 
+	INTER_NONEMPTY = 1
 } intersection_type_t ;
 
 typedef struct intersection {
@@ -18,6 +18,8 @@ typedef struct intersection {
 	vec3d pos, norm;
 	struct renderable* obj;
 } intersection_t;
+
+void print_intersection(const intersection_t);
 
 
 typedef struct renderable {
@@ -28,6 +30,7 @@ typedef struct renderable {
 
 	void (*getClosestInter) (const struct renderable* self, const ray_t*, intersection_t* out);
 	//int (*canSeePoint)(const void* renderable, const vec3d, const vec3d pos);
+	void (*print)(const struct renderable* self);
 	void* geom_parameters, *shader_parameters;
 	vec3f col;
 	size_t geom_len, shade_len;
@@ -58,6 +61,8 @@ void make_sphere2(renderable_t* r, vec3d pos, double radius, vec3f col, vec3f am
 void make_plane(renderable_t* r, vec3d, double, vec3f ambient, float shin, float diff);
 
 void make_sceene(unsigned int objs_n, unsigned int lights_n, light_t* ls, renderable_t* rs, sceene_t* s);
+
+void print_sceene(const sceene_t* s);
 
 int canSeePoint(const sceene_t* s, const intersection_t* inter, const vec3d* target);
 

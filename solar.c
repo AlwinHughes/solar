@@ -104,10 +104,13 @@ int main(int argc, char* argv[]) {
 	return 0;
 	*/
 
-	light_t light;
+	light_t lights[2];
 	//light.pos = make_vec3d(0,0,10);
-	light.pos = make_vec3d(0,10,-5);
-	light.col = make_vec3f(1,1,1);
+	lights[0].pos = make_vec3d(0,10,-5);
+	lights[0].col = make_vec3f(1,1,1);
+
+	lights[1].pos = make_vec3d(5,-7,-10);
+	lights[1].col = make_vec3f(0,1,1);
 
 	renderable_t renderables[4];
 	//												pos									radius		color						ambient								 shin, diff
@@ -117,9 +120,12 @@ int main(int argc, char* argv[]) {
 	make_sphere2(renderables +3, make_vec3d(2,0,0), 0.2, make_vec3f(1,0,0), make_vec3f(0.1,0.1,0.1), 10, 1);
 
 	sceene_t sceene;
-	make_sceene(ARRLEN(renderables),1, &light, renderables, &sceene);
+	make_sceene(ARRLEN(renderables), ARRLEN(lights), lights, renderables, &sceene);
+	printf("no lights: %i", ARRLEN(lights));
 
 	ray_t ray;
+
+	print_sceene(&sceene);
 
 	sphere_inter_t sphere_inter;
 	
@@ -143,6 +149,13 @@ int main(int argc, char* argv[]) {
 	shinyness = 20;
 	intersection_t inter;
 
+	intersection_type_t test;
+	test = INTER_EMPTY;
+	printf("intersection type %i\n", test);
+	test = INTER_NONEMPTY;
+	printf("intersection type %i\n", test);
+
+
 	//compute intersections by grouping in boxes
 	for(int j = 0; j < num_box_vert; j++){
 		for(int i = 0; i < num_box_horiz; i++){
@@ -158,14 +171,14 @@ int main(int argc, char* argv[]) {
 			float* offset = boxes[ i + j * num_box_horiz];
 			for(int y = j * box_height; y < current_height + j * box_height; y++){
 				for(int x = i * box_width; x < current_width + i * box_width; x++){
-					//printf("x: %i, y:%i\n", x,y);
 
 					ray = make_ray( cam_pos, make_vec3d(1, ratio * (x / (float) width) - 0.5,   (y / (float) height) - 0.5 ));
 
+					inter.empty = INTER_EMPTY;
 					getClosestInter(&ray, cam_pos, &sceene, &inter);
 					if(inter.empty != INTER_EMPTY){
-						//printf("found inter\n");
-						*((vec3f*) offset) = inter.obj->getColAtInter(inter.obj, &ray, &inter, &sceene, &cam_pos);
+						vec3f v = inter.obj->getColAtInter(inter.obj, &ray, &inter, &sceene, &cam_pos);
+						*((vec3f*) offset) = v;
 					} 
 					inter.empty = INTER_EMPTY;
 					/*

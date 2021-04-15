@@ -8,4 +8,6 @@ typedef struct {
 	vec3f col;
 } light_t;
 
+void print_light(light_t l);
+
 #endif

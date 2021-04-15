@@ -1,6 +1,6 @@
 CC=gcc
 
-SRCS = solar.c vec.c ray.c sphere.c view.c  phong.c pngsetup.c renderable.c
+SRCS = solar.c vec.c ray.c sphere.c view.c phong.c light.c pngsetup.c renderable.c
 OBJS =  $(SRCS:.c=.o)  
 DEP = vec.h sphere.h ray.h view.h phong.h light.h pngsetup.h renderable.h
 
@@ -20,4 +20,4 @@ $(SRCS) :
 	$(CC) -c $<                                                                                                                                                      
 
 clean :
-	rm *.o
+	rm -f *.o
