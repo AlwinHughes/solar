@@ -49,4 +49,7 @@ vec3d normalize3d(vec3d v);
 
 double dist(const vec3d u, const vec3d v);
 
+vec3d crossd(const vec3d, const vec3d);
+vec3f crossf(const vec3f, const vec3f);
+
 #endif

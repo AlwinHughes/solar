@@ -1,13 +1,14 @@
 CC=gcc
 
-SRCS = solar.c vec.c ray.c sphere.c view.c phong.c light.c pngsetup.c renderable.c
+SRCS = solar.c vec.c ray.c sphere.c view.c light.c pngsetup.c renderable.c camera.c plane.c
 OBJS =  $(SRCS:.c=.o)  
-DEP = vec.h sphere.h ray.h view.h phong.h light.h pngsetup.h renderable.h
+DEP = vec.h sphere.h ray.h view.h light.h pngsetup.h renderable.h camera.h plane.h
 
 OPTS = -lpng -lX11 -lm  -O2
 
 
 solar : $(OBJS) $(DEP)
+	@echo solar build
 	$(CC) -o solar $(OBJS) $(OPTS)
 
 list :
@@ -17,6 +18,7 @@ list :
 
 
 $(SRCS) :
+	@echo source thing
 	$(CC) -c $<                                                                                                                                                      
 
 clean :

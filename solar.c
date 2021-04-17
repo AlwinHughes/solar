@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
 	intersection_t inter;
 
 	vec3d cam_pos = make_vec3d(0,0,0);
-	vec3d cam_direc = make_vec3d(1,0,0);
+	vec3d cam_direc = make_vec3d(1,0.2,0);
 	vec3d cam_up = make_vec3d(0,0,1);
 	camera_t cam = make_camera(cam_pos, cam_direc, cam_up, width, height);
 	float ratio = (float) width / height;
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
 			for(int y = j * box_height; y < current_height + j * box_height; y++){
 				for(int x = i * box_width; x < current_width + i * box_width; x++){
 
-					ray = make_ray( cam_pos, make_vec3d(1, ratio * ((x / (float) width) - 0.5),   (y / (float) height) - 0.5 ));
+					get_ray(&cam, x, y, &ray);
 
 					inter.empty = INTER_EMPTY;
 					getClosestInter(&ray, cam_pos, &sceene, &inter);

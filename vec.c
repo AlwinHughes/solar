@@ -118,4 +118,21 @@ vec3f ele_mul_3f(vec3f v, vec3f u){
 vec3d normalize3d(vec3d v){
 	double s = 1/sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 	return scale(v, s);
-}
+};
+
+
+vec3d crossd(const vec3d u, const vec3d v){
+	vec3d ret;
+	ret.x = u.y * v.z - v.z * u.y;
+	ret.y = v.x * u.z - u.x * v.z;
+	ret.z = u.x * v.y - u.y * v.x;
+	return ret;
+};
+
+vec3f crossf(const vec3f u, const vec3f v){
+	vec3f ret;
+	ret.x = u.y * v.z - v.z * u.y;
+	ret.y = v.x * u.z - u.x * v.z;
+	ret.z = u.x * v.y - u.y * v.x;
+	return ret;
+};
