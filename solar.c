@@ -4,24 +4,23 @@
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
-//#include <immintrin.h>
 
 #include "vec.h"
 #include "sphere.h"
 #include "ray.h"
 #include "view.h"
-#include "phong.h"
 #include "light.h"
 #include "pngsetup.h"
 #include "renderable.h"
+#include "camera.h"
 
 #define ARRLEN(a) (sizeof(a) / sizeof((a)[0]))
 
-
-
 unsigned char* scale_to_char(float* arr, size_t size, float scale){
 
+	//printf("scale to char1 %zu\n", sizeof(unsigned char) * size);
 	unsigned char* ret = (unsigned char*) malloc(sizeof(unsigned char) * size);
+	//printf("scale to char2\n");
 
 	for(size_t i = 0; i < size; i++){
 		ret[i] = (unsigned char) (arr[i] * scale * 255);
@@ -51,11 +50,10 @@ int main(int argc, char* argv[]) {
 
 	printf("png byte size: %zu\n", sizeof(png_byte));
 
-	int width = 1000;
+	int width = 2000;
 	int height = 1000;
 
 
-	vec3d cam_pos = make_vec3d(0,0,0);
 
 	FILE * count_fp, * fp;
 	png_structp png_ptr;
@@ -68,8 +66,8 @@ int main(int argc, char* argv[]) {
 		pngSetUp(&count_fp, &fp, &png_ptr, &info_ptr, &png_row, &image_number, file_name, width, height);
 	}
 
-	float ratio = (float) width / height;
 
+	/*
 	sphere_geom_t sphere = make_sphere_geom(make_vec3d(3,0,0), 1);
 
 	sphere_t spheres[] = { 
@@ -82,32 +80,10 @@ int main(int argc, char* argv[]) {
 			make_sphere(make_sphere_geom(make_vec3d(2,0,0), 0.2),
 				make_sphere_col(1,0,0) )
 	};
+	*/
 
 	ray_t test_ray = make_ray(make_vec3d(0,0,0), make_vec3d(10,0,0));
-	sphere_inter_t si;
 
-	getNearestSphere(test_ray, spheres, ARRLEN(spheres), cam_pos, &si);
-
-	/*
-	if(!si.sphere){
-		printf("no inter\n");
-		return 0 ;
-	}
-
-	printf("sphere: ");
-	print_sphere(si.sphere->geom);
-	printf("\n");
-
-	printf("had color:");
-	print_vec3f(si.sphere->col);
-	printf("\n has pos ");
-	print_vec3d(si.pos);
-	printf("\nhad norm\n ");
-	print_vec3d(si.norm);
-	printf("\n");
-
-	return 0;
-	*/
 
 	light_t lights[2];
 	//light.pos = make_vec3d(0,0,10);
@@ -119,10 +95,10 @@ int main(int argc, char* argv[]) {
 
 	renderable_t renderables[4];
 	//												pos									radius		color						ambient								 shin, diff
-	make_sphere2(renderables, make_vec3d(3,0.4,0), 0.5, make_vec3f(0,1,0), make_vec3f(0.1,0.1,0.1), 100, 1);
-	make_sphere2(renderables +1, make_vec3d(10,0,100), 100, make_vec3f(1,1,1), make_vec3f(0.1,0.1,0.1), 10, 1);
-	make_sphere2(renderables +2, make_vec3d(20,0,0.3), 5, make_vec3f(0,0,1), make_vec3f(0.1,0.1,0.1), 10, 1);
-	make_sphere2(renderables +3, make_vec3d(2,0,0), 0.2, make_vec3f(1,0,0), make_vec3f(0.1,0.1,0.1), 10, 1);
+	make_sphere(renderables, make_vec3d(3,0.4,0), 0.5, make_vec3f(0,1,0), make_vec3f(0.1,0.1,0.1), 100, 1);
+	make_sphere(renderables +1, make_vec3d(10,0,100), 100, make_vec3f(1,1,1), make_vec3f(0.1,0.1,0.1), 10, 1);
+	make_sphere(renderables +2, make_vec3d(20,0,0.3), 5, make_vec3f(0,0,1), make_vec3f(0.1,0.1,0.1), 10, 1);
+	make_sphere(renderables +3, make_vec3d(2,0,0), 0.2, make_vec3f(1,0,0), make_vec3f(0.1,0.1,0.1), 10, 1);
 
 	sceene_t sceene;
 	make_sceene(ARRLEN(renderables), ARRLEN(lights), lights, renderables, &sceene);
@@ -132,12 +108,11 @@ int main(int argc, char* argv[]) {
 
 	print_sceene(&sceene);
 
-	sphere_inter_t sphere_inter;
 	
 	printf("\n");
 
-	const int box_width = 1000;
-	const int box_height = 1000; 
+	const int box_width = 200;
+	const int box_height = 100; 
 
 	const int num_box_horiz = ceil((float) width / box_width);
 	const int num_box_vert = ceil((float) height / box_height);
@@ -149,23 +124,27 @@ int main(int argc, char* argv[]) {
 	float * box_start;
 	int current_width, current_height;
 	vec3f ambient = make_vec3f(0.1,0.1,0.1);
-	float diffuse, shinyness;
-	diffuse = 1;
-	shinyness = 20;
 	intersection_t inter;
 
-	intersection_type_t test;
-	test = INTER_EMPTY;
-	printf("intersection type %i\n", test);
-	test = INTER_NONEMPTY;
-	printf("intersection type %i\n", test);
+	vec3d cam_pos = make_vec3d(0,0,0);
+	vec3d cam_direc = make_vec3d(1,0,0);
+	vec3d cam_up = make_vec3d(0,0,1);
+	camera_t cam = make_camera(cam_pos, cam_direc, cam_up, width, height);
+	float ratio = (float) width / height;
+
+	/*
+	for(int i = 0; i < width; i++){
+		printf("x %f\n", ratio * ((i / (float) width) - 0.5));
+	}
+	*/
 
 
 	//compute intersections by grouping in boxes
 	for(int j = 0; j < num_box_vert; j++){
+		printf("box v: %i\n", j);
 		for(int i = 0; i < num_box_horiz; i++){
 			//size_t points_in_box = 
-			printf("box h: %i, box v: %i\n", i, j);
+			//printf("box h: %i, box v: %i\n", i, j);
 			current_width = fmin(box_width, width - (i * box_width));
 			current_height = fmin(box_height, height- (j * box_height));
 			//printf("current: box h: %i, box v: %i, index: %i\n", current_width, current_height, i + j * num_box_horiz);
@@ -177,7 +156,7 @@ int main(int argc, char* argv[]) {
 			for(int y = j * box_height; y < current_height + j * box_height; y++){
 				for(int x = i * box_width; x < current_width + i * box_width; x++){
 
-					ray = make_ray( cam_pos, make_vec3d(1, ratio * (x / (float) width) - 0.5,   (y / (float) height) - 0.5 ));
+					ray = make_ray( cam_pos, make_vec3d(1, ratio * ((x / (float) width) - 0.5),   (y / (float) height) - 0.5 ));
 
 					inter.empty = INTER_EMPTY;
 					getClosestInter(&ray, cam_pos, &sceene, &inter);
@@ -233,6 +212,7 @@ int main(int argc, char* argv[]) {
 		current_height = fmin(box_height, height- (j * box_height));
 
 		for(int i = 0; i < num_box_horiz; i++){
+			//printf("v: %i, h: %i\n", j, i);
 
 			current_width = fmin(box_width, width - (i * box_width));
 			char_boxes[i + num_box_horiz * j] = scale_to_char(boxes[i + j * num_box_horiz], current_width * current_height *  3,  1/max);

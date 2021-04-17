@@ -2,183 +2,80 @@
 #include "vec.h"
 #include <math.h>
 
-int does_intersect(const sphere_geom_t s, const ray_t r){
-/* r: a + bt
- * s: |x - c| = f 
- * | (a + bt) - c | = f
- * intersection if | (a - bt) - c| < f for some t
- * 
- * solve |(a - bt - c)|^2 = f^2 for t
- * 
- *
- */
+void print_sphere(const renderable_t* r){
+	vec3d* center = (vec3d*) r->geom_parameters;
+	double* radius = (double*) (r->geom_parameters + sizeof(vec3d));
 
-	//a b c now refer to the quadratic coeficients
-	double a = dotd(r.direc, r.direc);
-	vec3d start_min_center =  sub_vec3d(r.start, s.center);
-	double b = 2.0 * dotd(start_min_center, r.direc);
-	double c = dotd(start_min_center, start_min_center) - (s.radius * s.radius);
+	vec3f* ambient = (vec3f*)(r->shader_parameters);
+	float *shininess, *diff;
+	shininess = (float*)(r->shader_parameters + (sizeof(vec3f)));
+	diff = (float*)(r->shader_parameters + (sizeof(vec3f)) + sizeof(float));
 
-	//printf("a: %f, b: %f, c: %f\n", a,b,c);
-
-	return b * b - 4.0 * a * c > 0;
-};
-
-vec3d get_pos_inter(const sphere_geom_t s, const ray_t r){
-/* r: a + bt
- * s: |x - c| = f 
- * | (a + bt) - c | = f
- * intersection if | (a - bt) - c| < f for some t
- * 
- * solve |(a - bt - c)|^2 = f^2 for t
- * 
- *
- */
-
-	//a b c now refer to the quadratic coeficients
-	double a = dotd(r.direc, r.direc);
-	vec3d start_min_center = sub_vec3d(r.start, s.center);
-	double b = 2.0 * dotd(start_min_center, r.direc);
-	double c = dotd(start_min_center, start_min_center) - (s.radius * s.radius);
-
-	//printf("disc: %f", b * b - 4.0f * a * c);
-
-	double sqrt_disc = sqrt(b * b - 4.0 * a * c);
-
-	double t = (-b + sqrt_disc)/ (2.0 * a);
-
-	vec3d ret = scale(r.direc, t);
-	ret = add_vec3d(ret, r.start);
-	return ret;
-};
-
-void print_sphere(const sphere_geom_t s) {
-	//printf("SphereG center: ");
-	print_vec3d(s.center);
-	printf(" with radius %f", s.radius);
+	printf("Sphere: center at ");
+	print_vec3d(*center);
+	printf(" radius %f", *radius);
+	printf(" color ");
+	print_vec3f(r->col);
+	printf(" ambient ");
+	print_vec3f(*ambient);
+	printf(" shiny %f diff %f\n", *shininess, *diff);
 }
 
-void print_full_sphere(const sphere_t s){
-	printf("print full sphere unimplimented");	
-}
+void sphere_getClosestInter(const struct renderable* self, const ray_t* r, intersection_t* out){
+	vec3d* center = (vec3d*) self->geom_parameters;
+	double* radius = (double*) (self->geom_parameters + sizeof(vec3d));
 
-void print_sphere_col(const sphere_col_t col){
-	printf("r: %i, g: %i, b: %i", col.x, col.y, col.z);
-}
-
-sphere_geom_t make_sphere_geom(const vec3d center, const double radius){
-	sphere_geom_t ret;
-	ret.center = center;
-	ret.radius = radius;
-	return ret;
-}
-
-
-void first_half_compute_inter(const sphere_geom_t s, const ray_t r, inter_first_t * inter){
-
-	double a = dotd(r.direc, r.direc);
-	vec3d start_min_center =  sub_vec3d(r.start, s.center);
-	double b = 2.0 * dotd(start_min_center, r.direc);
-	double c = dotd(start_min_center, start_min_center) - (s.radius * s.radius);
-
-	inter->a = a;
-	inter->b = b;
-	inter->c = c;
-	inter->disc = b * b - 4.0 * a * c;
-}
-
-
-void second_half_compute_inter(const ray_t r, inter_first_t * inter, inter_second_t * inter_res){
-
-	double t = (-inter->b + sqrt(inter->disc)) / 2.0 * inter->a;
-	inter_res->pos = scale(r.direc, t);
-	inter_res->pos = add_vec3d(inter_res->pos, r.start);
-
-}
-
-
-float does_intersect2(const sphere_geom_t s, const ray_t r){
-
-	double a = dotd(r.direc, r.direc);
-	vec3d start_min_center = sub_vec3d(r.start, s.center);
-	double b = 2.0 * dotd(start_min_center, r.direc);
-	double c = dotd(start_min_center, start_min_center) - (s.radius * s.radius);
+	double a = dotd(r->direc, r->direc);
+	vec3d start_min_center = sub_vec3d(r->start, *center);
+	double b = 2.0 * dotd(start_min_center, r->direc);
+	double c = dotd(start_min_center, start_min_center) - (*radius * *radius);
 
 	float disc_sq = b * b - 4.0 * a * c;
 	if(disc_sq < 0){
-		return -1.0;
+		out->empty = INTER_EMPTY;
+		return;
 	} 
 
-	// know a > 0
-	if( b > 0 ) {
-		return (-b + sqrt(disc_sq))/ (2.0 * a);
+	float t = (b > 0)*(-b + sqrt(disc_sq))/ (2.0 * a) + (b <= 0) *(-b - sqrt(disc_sq))/ (2.0 * a); 
+
+	if(t <= 0){
+		out->empty = INTER_EMPTY;
+		return;
 	}
-
-	return (-b - sqrt(disc_sq))/ (2.0 * a);
-}
-
-void getNorm(sphere_inter_t* inter) {
-	inter->norm = sub_vec3d(inter->pos,inter->sphere->geom.center);
-	inter->norm = normalize3d(inter->norm);
+	
+	out->empty = INTER_NONEMPTY;
+	out->pos = eval_at_point(*r, t);
+	out->norm = normalize3d(sub_vec3d(out->pos, *center));
+	out->obj = self;
 };
 
 
-void getNearestSphere(const ray_t r, sphere_t spheres[], size_t num_spheres, const vec3d cam_pos, sphere_inter_t * inter){
+void make_sphere(renderable_t* rend, vec3d v, double r, vec3f col, vec3f ambient, float shininess, float diff){
 
-	float best_dist, curr_dist, t, best_t;
-	curr_dist = 0;
-	best_dist = 10000000;
+	rend->geom_len = sizeof(vec3d) + sizeof(double);
+	rend->shade_len = sizeof(vec3f) + sizeof(float);
+	//									 center                 radius 	 ambient					shininess and diff
+	void * base  = malloc(rend->geom_len + rend->shade_len);
 
-	inter->sphere = NULL;
+	vec3d* center = (vec3d*) base;
+	*center = v;
 
-	for(size_t i = 0; i < num_spheres; i++){
-		//printf("considering sphere ");
-		//print_sphere(spheres[i].geom);
-		//printf(" with col ");
-		//print_vec3f(spheres[i].col);
-		//printf("\n");
-		t = does_intersect2(spheres[i].geom, r);
-		if(t < 0){
-			//printf("non positive\n");
-			continue;
-		} 
+	double* radius = (double*) (base + sizeof(vec3d));
+	*radius = r;
 
-		//printf("inter at: ");
-		//print_vec3d(eval_at_point(r, t));
-		//printf("\n");
+	vec3f* amb = (vec3f*) (base + rend->geom_len);
+	*amb = ambient;
 
-		//printf("got t of %f\n", t);
-		curr_dist = dist(cam_pos,eval_at_point(r, t));
-		//printf("found dist %f\n", curr_dist);
+	float* shi = (float*) (base + rend->geom_len + sizeof(vec3f));
+	*shi = shininess;
 
-		if(curr_dist < best_dist){
-			//printf("found new best\n");
-			best_dist = curr_dist;
-			best_t = t;
-			inter->sphere = &spheres[i];
-		}
-		//printf("---\n");
-	}
+	float* di = (float*) (base + rend->geom_len + sizeof(vec3f) + sizeof(float));
+	*di = diff;
 
-	if(inter->sphere){
-	//	printf("got an inter with norm\n");
-		inter->pos = eval_at_point(r, best_t);
-		getNorm(inter);
-	//	print_vec3d(inter->norm);
-	}
-}
-
-sphere_t make_sphere(const sphere_geom_t geom, sphere_col_t col) {
-	sphere_t s;
-	s.col = col;
-	s.geom = geom;
-	return s;
-}
-
-sphere_col_t make_sphere_col(float r, float g, float b) {
-	sphere_col_t col;
-	col.x = r;
-	col.y = g;
-	col.z = b;
-	return col;
-}
+	rend->col = col;
+	rend->geom_parameters =  base;
+	rend->shader_parameters = (void*) amb;
+	rend->getClosestInter = &sphere_getClosestInter;
+	rend->getColAtInter = &shader_phong_shadow;
+	rend->print = &print_sphere;
+};
